@@ -34,7 +34,7 @@ mongo_uploader = MongoUploader(MONGO_URI, MONGO_DB)
 mongo_uploader.reset()
 
 converter = TrimeshConverter(OUTPUT_DIR)
-processor = DatasetProcessor(DATASET_DIRS, OUTPUT_DIR, converter, pg_uploader, mongo_uploader, max_per_category=2)
+processor = DatasetProcessor(DATASET_DIRS, OUTPUT_DIR, converter, pg_uploader, mongo_uploader, max_per_category=5)
 
 # ביצוע עיבוד
 report, inserted, failed = processor.process()

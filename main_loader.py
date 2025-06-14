@@ -4,6 +4,7 @@ import gridfs
 import io
 import os
 
+
 app = Flask(__name__)
 
 client = MongoClient("mongodb://localhost:27017/")
@@ -29,14 +30,12 @@ def download_glb(item_id):
     )
 
 if __name__ == "__main__":
-    # שלב 1: ניקוי ספריית GLB
     glb_dir = r"C:\Users\97250\Desktop\Studies\Third year\Final Project\converted_glb"
     for f in os.listdir(glb_dir):
         if f.endswith(".glb"):
             os.remove(os.path.join(glb_dir, f))
     print("✅ Cleaned old GLB files")
 
-    # שלב 2: מחיקת נתונים קודמים מהבסיסים
     from uploader import PostgresUploader, MongoUploader
     from processor import DatasetProcessor
     from converters.trimesh_converter import TrimeshConverter
@@ -64,12 +63,10 @@ if __name__ == "__main__":
 
     print("✅ Cleared old records from PostgreSQL and MongoDB")
 
-    # שלב 3: המרה וטעינה מחדש של 10 פריטים מתיקייה
     converter = TrimeshConverter(glb_dir)
-    processor = DatasetProcessor(DATASET_DIRS, glb_dir, converter, pg_uploader, mongo_uploader, max_per_category=2)
+    processor = DatasetProcessor(DATASET_DIRS, glb_dir, converter, pg_uploader, mongo_uploader, max_per_category=5)
 
     report, inserted, failed = processor.process()
     print(f"✅ Inserted: {inserted}, Failed: {failed}")
 
-    # שלב 4: הרצת Flask כרגיל
     app.run(debug=True)

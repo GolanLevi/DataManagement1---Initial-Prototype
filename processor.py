@@ -1,7 +1,8 @@
 import os
+import trimesh
 
 class DatasetProcessor:
-    def __init__(self, dataset_dirs, output_dir, converter, pg_uploader, mongo_uploader, max_per_category=2):
+    def __init__(self, dataset_dirs, output_dir, converter, pg_uploader, mongo_uploader, max_per_category=5):
         self.dataset_dirs = dataset_dirs
         self.output_dir = output_dir
         self.converter = converter
@@ -29,6 +30,20 @@ class DatasetProcessor:
             "metadata_notes": None
         }
 
+    def has_color_texture(self, glb_path):
+        try:
+            scene = trimesh.load(glb_path, force='scene')
+            for geom in scene.geometry.values():
+                visual = geom.visual
+                if hasattr(visual, 'material') and hasattr(visual.material, 'image') and visual.material.image is not None:
+                    return True
+                if hasattr(visual, 'uv') and visual.uv is not None:
+                    return True
+            return False
+        except Exception as e:
+            print(f"[!] Texture check failed for {glb_path}: {e}")
+            return False
+
     def process(self):
         count_inserted = 0
         count_failed = 0
@@ -49,17 +64,22 @@ class DatasetProcessor:
                                 obj_path = os.path.join(meta['path'], f)
                                 glb_path = self.converter.convert(obj_path)
                                 if glb_path:
-                                    try:
-                                        meta['path'] = glb_path
-                                        self.pg_uploader.upload(meta, glb_path)
-                                        self.mongo_uploader.upload(meta, glb_path)
-                                        self.category_counter[category] += 1
-                                        meta['status'] = 'OK'
-                                        count_inserted += 1
-                                    except Exception as upload_error:
-                                        meta['status'] = f'FAIL: Upload failed: {upload_error}'
-                                        print(f"Upload failed for {meta['item_id']}: {upload_error}")
-                                        count_failed += 1
+                                    if self.has_color_texture(glb_path):
+                                        try:
+                                            meta['path'] = glb_path
+                                            self.pg_uploader.upload(meta, glb_path)
+                                            self.mongo_uploader.upload(meta, glb_path)
+                                            self.category_counter[category] += 1
+                                            meta['status'] = 'OK'
+                                            count_inserted += 1
+                                        except Exception as upload_error:
+                                            meta['status'] = f'FAIL: Upload failed: {upload_error}'
+                                            print(f"Upload failed for {meta['item_id']}: {upload_error}")
+                                            count_failed += 1
+                                    else:
+                                        print(f"[Skip] No texture for {meta['item_id']}, removing {glb_path}")
+                                        os.remove(glb_path)
+                                        meta['status'] = 'SKIPPED: No texture'
                                 else:
                                     meta['status'] = 'FAIL: GLB conversion failed'
                                     count_failed += 1

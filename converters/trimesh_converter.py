@@ -41,7 +41,7 @@ class TrimeshConverter:
 
             output_path = os.path.join(self.output_dir, os.path.basename(obj_path).replace(".obj", ".glb"))
             mesh.export(output_path)
-            print(f"✅ נוצר GLB: {output_path}")
+            print(f"✅  GLB Created: {output_path}")
             return output_path
 
         except Exception as e:
